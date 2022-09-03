@@ -3,6 +3,7 @@ import cors from "cors";
 import joi from "joi";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+import dayjs from "dayjs";
 
 dotenv.config();
 const app = express();
@@ -25,22 +26,24 @@ app.post("/participants", async (req, res) => {
     const user = req.body;
 
     const validate = participantesSchema.validate(user);
-    const name = req.body.name;
-    const confirm = await db.collection("participants").findOne({ name: name });
+    const confirm = await db
+      .collection("participants")
+      .findOne({ name: req.body.name });
 
     if (confirm) {
-      res.status(409);
+      res.sendStatus(409);
       console.log("ta entrando");
       return;
-    } else if (validate) {
+    } else if (validate.error) {
       res.status(422).send("name deve ser strings não vazio");
       return;
     }
-
     await db.collection("participants").insertOne({
       name: req.body.name,
       lastStatus: Date.now(),
     });
+    res.sendStatus(201);
+    return;
   } catch (err) {
     res.status(500).send(err);
     return;
