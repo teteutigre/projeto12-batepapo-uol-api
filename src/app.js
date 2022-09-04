@@ -10,13 +10,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const mongoClient = new MongoClient(process.env.MONGO_URI);
-let db;
-
-mongoClient.connect().then(() => {
-  db = mongoClient.db("batepapouol");
-});
-
 const participantesSchema = joi.object({
   name: joi.string().required(),
 });
@@ -25,6 +18,13 @@ const messagesSchema = joi.object({
   to: joi.string().required(),
   text: joi.string().required(),
   type: joi.string().valid("private_message", "message").required(),
+});
+
+const mongoClient = new MongoClient(process.env.MONGO_URI);
+let db;
+
+mongoClient.connect().then(() => {
+  db = mongoClient.db("batepapouol");
 });
 
 app.post("/participants", async (req, res) => {
@@ -125,6 +125,29 @@ app.get("/messages", async (req, res) => {
       return;
     }
     res.send(messages);
+  } catch {
+    res.sendStatus(500);
+    return;
+  }
+});
+
+app.post("/status", async (req, res) => {
+  try {
+    const confirm = await db
+      .collection("participants")
+      .findOne({ name: req.header.user });
+
+    if (!confirm) {
+      res.sendStatus(404);
+      return;
+    }
+    await db.collection("participants").updateOne(
+      {
+        _id: confirm._id,
+      },
+      { $set: { lastStatus: Date.now() } }
+    );
+    res.sendStatus(200);
   } catch {
     res.sendStatus(500);
     return;
