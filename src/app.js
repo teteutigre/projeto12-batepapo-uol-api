@@ -27,6 +27,20 @@ mongoClient.connect().then(() => {
   db = mongoClient.db("batepapouol");
 });
 
+setInterval(async () => {
+  try {
+    const participants = await db.collection("participants").find().toArray();
+    for (let i = 0; i < participants.length; i++) {
+      const user = participants[i];
+      if (Date.now() - user.lastStatus > 10000) {
+        await db.collection("participants").deleteOne({ name: user.name });
+      }
+    }
+  } catch {
+    res.sendStatus(500);
+  }
+}, 15000);
+
 app.post("/participants", async (req, res) => {
   try {
     const validate = participantesSchema.validate(req.body);
@@ -111,7 +125,7 @@ app.get("/messages", async (req, res) => {
           messagesLimit.push(msgPop);
         }
       }
-      res.send(messagesLimit);
+      res.send(messagesLimit.reverse());
       return;
     } else {
       const messagesAll = [];
@@ -124,7 +138,6 @@ app.get("/messages", async (req, res) => {
       res.send(messagesAll);
       return;
     }
-    res.send(messages);
   } catch {
     res.sendStatus(500);
     return;
